@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Настольный хоккей</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            touch-action: manipulation;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #1a2a6c);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            padding: 15px;
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            padding: 20px;
+            background: rgba(0, 0, 30, 0.7);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+            background: linear-gradient(to right, #4facfe, #00f2fe);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .score-container {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            font-size: 1.8rem;
+            font-weight: bold;
+            text-align: center;
+            padding: 10px;
+            border-radius: 10px;
+            background: rgba(0, 0, 50, 0.4);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .player-score {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0 20px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .player1-score.active {
+            background: rgba(79, 172, 254, 0.2);
+            box-shadow: 0 0 15px rgba(79, 172, 254, 0.5);
+        }
+
+        .player2-score.active {
+            background: rgba(255, 107, 107, 0.2);
+            box-shadow: 0 0 15px rgba(255, 107, 107, 0.5);
+        }
+
+        .player1-score {
+            color: #4facfe;
+        }
+
+        .player2-score {
+            color: #ff6b6b;
+        }
+
+        .score-value {
+            font-size: 3rem;
+            margin-top: 5px;
+        }
+
+        .game-board {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            aspect-ratio: 2 / 1;
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7);
+            border: 5px solid #4a5568;
+            touch-action: none;
+        }
+
+        #gameCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        button {
+            padding: 12px 25px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            min-width: 150px;
+        }
+
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        #resetBtn {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%);
+        }
+
+        .instructions {
+            background: rgba(0, 0, 50, 0.4);
+            padding: 20px;
+            border-radius: 15px;
+            width: 100%;
+            max-width: 600px;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            margin-top: 10px;
+        }
+
+        .instructions h3 {
+            margin-bottom: 10px;
+            color: #00f2fe;
+        }
+
+        .goal-effect {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 5rem;
+            font-weight: bold;
+            opacity: 0;
+            pointer-events: none;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+            animation: goalAnimation 1.5s ease-out;
+        }
+
+        @keyframes goalAnimation {
+            0% { opacity: 1; transform: translate(-50%, -50%) scale(0.5); }
+            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+        }
+
+        .winner-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 30, 0.9);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            z-index: 100;
+            box-shadow: 0 0 30px rgba(0, 200, 255, 0.7);
+            border: 2px solid #00f2fe;
+            display: none;
+        }
+
+        .winner-message h2 {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            color: #4facfe;
+        }
+
+        .winner-message p {
+            font-size: 1.5rem;
+            margin-bottom: 25px;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .score-container {
+                font-size: 1.4rem;
+            }
+            
+            .score-value {
+                font-size: 2.5rem;
+            }
+            
+            button {
+                padding: 10px 20px;
+                font-size: 1rem;
+                min-width: 130px;
+            }
+            
+            .instructions {
+                font-size: 1rem;
+                padding: 15px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.7rem;
+            }
+            
+            .player-score {
+                padding: 0 10px;
+            }
+            
+            .score-value {
+                font-size: 2rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            button {
+                width: 100%;
+                max-width: 250px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>Настольный хоккей</h1>
+        
+        <div class="score-container">
+            <div class="player-score player1-score" id="player1Score">
+                <div>Игрок 1</div>
+                <div class="score-value" id="score1">0</div>
+            </div>
+            <div class="player-score player2-score" id="player2Score">
+                <div>Игрок 2</div>
+                <div class="score-value" id="score2">0</div>
+            </div>
+        </div>
+        
+        <div class="game-board">
+            <canvas id="gameCanvas"></canvas>
+            <div class="goal-effect" id="goalEffect">GO</div>
+            <div class="winner-message" id="winnerMessage">
+                <h2>Победа!</h2>
+                <p id="winnerText"></p>
+                <button id="playAgainBtn">Играть снова</button>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button id="newGameBtn">Новая игра</button>
+            <button id="resetBtn">Сбросить счет</button>
+        </div>
+        
+        <div class="instructions">
+            <h3>Как играть:</h3>
+            <p>• Игрок 1 (синяя клюшка) - управляйте мышью или касанием на своей половине поля</p>
+            <p>• Игрок 2 (красная клюшка) - управляйте мышью или касанием на своей половине поля</p>
+            <p>• Нажмите на клюшку и потяните, чтобы ударить по шайбе. Сила удара зависит от скорости движения</p>
+            <p>• Забейте шайбу в ворота соперника, чтобы заработать очко</p>
+            <p>• Игра идет до 5 очков!</p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Конфигурация игры
+            const config = {
+                maxScore: 5,
+                friction: 0.98,
+                puckRadius: 12,
+                malletRadius: 25,
+                goalWidthRatio: 0.4,
+                puckSpeedRatio: 0.002,
+                colors: {
+                    player1: '#4facfe',
+                    player2: '#ff6b6b',
+                    puck: '#ffffff',
+                    field: '#0f2027',
+                    centerLine: '#4a5568',
+                    walls: '#2d3748',
+                    goal: '#718096'
+                }
+            };
+
+            // Состояние игры
+            const gameState = {
+                scores: { player1: 0, player2: 0 },
+                puck: { x: 0, y: 0, vx: 0, vy: 0 },
+                mallet1: { 
+                    x: 0, y: 0, 
+                    prevX: 0, prevY: 0,
+                    vx: 0, vy: 0,
+                    radius: config.malletRadius, 
+                    color: config.colors.player1 
+                },
+                mallet2: { 
+                    x: 0, y: 0, 
+                    prevX: 0, prevY: 0,
+                    vx: 0, vy: 0,
+                    radius: config.malletRadius, 
+                    color: config.colors.player2 
+                },
+                dragging: null,
+                lastUpdate: 0,
+                gameActive: true,
+                fieldWidth: 0,
+                fieldHeight: 0,
+                goalWidth: 0,
+                goalHeight: 15,
+                goalScored: false // Флаг, что гол уже засчитан
+            };
+
+            // Получение элементов DOM
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+            const score1El = document.getElementById('score1');
+            const score2El = document.getElementById('score2');
+            const player1ScoreEl = document.getElementById('player1Score');
+            const player2ScoreEl = document.getElementById('player2Score');
+            const newGameBtn = document.getElementById('newGameBtn');
+            const resetBtn = document.getElementById('resetBtn');
+            const goalEffect = document.getElementById('goalEffect');
+            const winnerMessage = document.getElementById('winnerMessage');
+            const winnerText = document.getElementById('winnerText');
+            const playAgainBtn = document.getElementById('playAgainBtn');
+
+            // Инициализация игры
+            function initGame() {
+                resizeCanvas();
+                resetGame();
+                resetScores();
+                window.addEventListener('resize', resizeCanvas);
+                canvas.addEventListener('mousedown', handleMouseDown);
+                canvas.addEventListener('mousemove', handleMouseMove);
+                canvas.addEventListener('mouseup', handleMouseUp);
+                canvas.addEventListener('mouseleave', handleMouseUp);
+                
+                // Обработчики для сенсорных устройств
+                canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+                canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+                canvas.addEventListener('touchend', handleTouchEnd);
+                
+                newGameBtn.addEventListener('click', resetGame);
+                resetBtn.addEventListener('click', resetScores);
+                playAgainBtn.addEventListener('click', () => {
+                    winnerMessage.style.display = 'none';
+                    resetGame();
+                    resetScores();
+                });
+                
+                requestAnimationFrame(gameLoop);
+            }
+
+            // Изменение размера холста
+            function resizeCanvas() {
+                const container = canvas.parentElement;
+                canvas.width = container.clientWidth;
+                canvas.height = container.clientHeight;
+                
+                gameState.fieldWidth = canvas.width;
+                gameState.fieldHeight = canvas.height;
+                gameState.goalWidth = canvas.height * config.goalWidthRatio;
+                
+                resetPositions();
+            }
+
+            // Сброс позиций
+            function resetPositions() {
+                // Центральная позиция шайбы
+                gameState.puck.x = canvas.width / 2;
+                gameState.puck.y = canvas.height / 2;
+                gameState.puck.vx = 0;
+                gameState.puck.vy = 0;
+                
+                // Позиции клюшек
+                gameState.mallet1.x = canvas.width / 4;
+                gameState.mallet1.y = canvas.height / 2;
+                gameState.mallet1.prevX = gameState.mallet1.x;
+                gameState.mallet1.prevY = gameState.mallet1.y;
+                gameState.mallet1.vx = 0;
+                gameState.mallet1.vy = 0;
+                
+                gameState.mallet2.x = canvas.width * 3 / 4;
+                gameState.mallet2.y = canvas.height / 2;
+                gameState.mallet2.prevX = gameState.mallet2.x;
+                gameState.mallet2.prevY = gameState.mallet2.y;
+                gameState.mallet2.vx = 0;
+                gameState.mallet2.vy = 0;
+                
+                gameState.goalScored = false; // Сброс флага гола
+            }
+
+            // Сброс игры
+            function resetGame() {
+                gameState.gameActive = true;
+                resetPositions();
+            }
+
+            // Сброс счета
+            function resetScores() {
+                gameState.scores.player1 = 0;
+                gameState.scores.player2 = 0;
+                updateScores();
+            }
+
+            // Обновление счета на экране
+            function updateScores() {
+                score1El.textContent = gameState.scores.player1;
+                score2El.textContent = gameState.scores.player2;
+                
+                // Подсветка счета ведущего игрока
+                player1ScoreEl.classList.remove('active');
+                player2ScoreEl.classList.remove('active');
+                
+                if (gameState.scores.player1 > gameState.scores.player2) {
+                    player1ScoreEl.classList.add('active');
+                } else if (gameState.scores.player2 > gameState.scores.player1) {
+                    player2ScoreEl.classList.add('active');
+                }
+            }
+
+            // Обработка начала перетаскивания
+            function startDrag(x, y) {
+                const halfWidth = canvas.width / 2;
+                const mallet1Dist = Math.sqrt((x - gameState.mallet1.x) ** 2 + (y - gameState.mallet1.y) ** 2);
+                const mallet2Dist = Math.sqrt((x - gameState.mallet2.x) ** 2 + (y - gameState.mallet2.y) ** 2);
+                
+                // Определение, какую клюшку перемещают
+                if (mallet1Dist < gameState.mallet1.radius && x < halfWidth) {
+                    gameState.dragging = { mallet: 'mallet1', startX: x, startY: y };
+                } else if (mallet2Dist < gameState.mallet2.radius && x > halfWidth) {
+                    gameState.dragging = { mallet: 'mallet2', startX: x, startY: y };
+                }
+            }
+
+            // Обработка перемещения
+            function handleDrag(x, y) {
+                if (!gameState.dragging || !gameState.gameActive) return;
+                
+                const mallet = gameState[gameState.dragging.mallet];
+                const halfWidth = canvas.width / 2;
+                
+                // Ограничение перемещения на своей половине поля
+                if (gameState.dragging.mallet === 'mallet1' && x > halfWidth - mallet.radius) {
+                    x = halfWidth - mallet.radius;
+                } else if (gameState.dragging.mallet === 'mallet2' && x < halfWidth + mallet.radius) {
+                    x = halfWidth + mallet.radius;
+                }
+                
+                // Обновление позиции клюшки
+                mallet.x = x;
+                mallet.y = y;
+                
+                // Ограничение в пределах поля
+                mallet.x = Math.max(mallet.radius, Math.min(canvas.width - mallet.radius, mallet.x));
+                mallet.y = Math.max(mallet.radius, Math.min(canvas.height - mallet.radius, mallet.y));
+            }
+
+            // Обработка окончания перетаскивания (удар)
+            function endDrag(x, y) {
+                if (!gameState.dragging || !gameState.gameActive) return;
+                
+                const mallet = gameState[gameState.dragging.mallet];
+                const dx = x - mallet.x;
+                const dy = y - mallet.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // Если клюшка переместилась достаточно для удара
+                if (distance > 5) {
+                    // Расчет импульса удара (замедлено в 100 раз)
+                    const power = Math.min(1, distance / 100);
+                    gameState.puck.vx += dx * power * config.puckSpeedRatio;
+                    gameState.puck.vy += dy * power * config.puckSpeedRatio;
+                }
+                
+                gameState.dragging = null;
+            }
+
+            // Обработчики событий мыши
+            function handleMouseDown(e) {
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                startDrag(x, y);
+            }
+
+            function handleMouseMove(e) {
+                if (!gameState.dragging) return;
+                
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                handleDrag(x, y);
+            }
+
+            function handleMouseUp(e) {
+                if (!gameState.dragging) return;
+                
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                endDrag(x, y);
+            }
+
+            // Обработчики событий касания
+            function handleTouchStart(e) {
+                e.preventDefault();
+                if (e.touches.length === 1) {
+                    const rect = canvas.getBoundingClientRect();
+                    const touch = e.touches[0];
+                    const x = touch.clientX - rect.left;
+                    const y = touch.clientY - rect.top;
+                    startDrag(x, y);
+                }
+            }
+
+            function handleTouchMove(e) {
+                e.preventDefault();
+                if (gameState.dragging && e.touches.length === 1) {
+                    const rect = canvas.getBoundingClientRect();
+                    const touch = e.touches[0];
+                    const x = touch.clientX - rect.left;
+                    const y = touch.clientY - rect.top;
+                    handleDrag(x, y);
+                }
+            }
+
+            function handleTouchEnd(e) {
+                if (!gameState.dragging) return;
+                
+                if (e.changedTouches.length === 1) {
+                    const rect = canvas.getBoundingClientRect();
+                    const touch = e.changedTouches[0];
+                    const x = touch.clientX - rect.left;
+                    const y = touch.clientY - rect.top;
+                    endDrag(x, y);
+                }
+            }
+
+            // Обновление скоростей клюшек
+            function updateMalletVelocity(mallet, deltaTime) {
+                const dtSec = deltaTime / 1000;
+                if (dtSec > 0) {
+                    mallet.vx = (mallet.x - mallet.prevX) / dtSec;
+                    mallet.vy = (mallet.y - mallet.prevY) / dtSec;
+                } else {
+                    mallet.vx = 0;
+                    mallet.vy = 0;
+                }
+                mallet.prevX = mallet.x;
+                mallet.prevY = mallet.y;
+            }
+
+            // Проверка столкновений с улучшенной физикой
+            function checkCollisions() {
+                // Столкновение с клюшкой 1
+                const dx1 = gameState.puck.x - gameState.mallet1.x;
+                const dy1 = gameState.puck.y - gameState.mallet1.y;
+                const distance1 = Math.sqrt(dx1 * dx1 + dy1 * dy1);
+                const minDist1 = config.puckRadius + gameState.mallet1.radius;
+                
+                if (distance1 < minDist1) {
+                    // Выталкивание шайбы из клюшки
+                    const overlap = minDist1 - distance1;
+                    const nx = dx1 / distance1;
+                    const ny = dy1 / distance1;
+                    gameState.puck.x += nx * overlap;
+                    gameState.puck.y += ny * overlap;
+                    
+                    // Передача импульса от клюшки (замедлено в 100 раз)
+                    const impulseFactor = 0.008;
+                    gameState.puck.vx += gameState.mallet1.vx * impulseFactor;
+                    gameState.puck.vy += gameState.mallet1.vy * impulseFactor;
+                }
+                
+                // Столкновение с клюшкой 2
+                const dx2 = gameState.puck.x - gameState.mallet2.x;
+                const dy2 = gameState.puck.y - gameState.mallet2.y;
+                const distance2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+                const minDist2 = config.puckRadius + gameState.mallet2.radius;
+                
+                if (distance2 < minDist2) {
+                    // Выталкивание шайбы из клюшки
+                    const overlap = minDist2 - distance2;
+                    const nx = dx2 / distance2;
+                    const ny = dy2 / distance2;
+                    gameState.puck.x += nx * overlap;
+                    gameState.puck.y += ny * overlap;
+                    
+                    // Передача импульса от клюшки (замедлено в 100 раз)
+                    const impulseFactor = 0.008;
+                    gameState.puck.vx += gameState.mallet2.vx * impulseFactor;
+                    gameState.puck.vy += gameState.mallet2.vy * impulseFactor;
+                }
+                
+                // Столкновение с границами поля
+                if (gameState.puck.x - config.puckRadius < 0) {
+                    gameState.puck.x = config.puckRadius;
+                    gameState.puck.vx = Math.abs(gameState.puck.vx) * 0.8;
+                } else if (gameState.puck.x + config.puckRadius > canvas.width) {
+                    gameState.puck.x = canvas.width - config.puckRadius;
+                    gameState.puck.vx = -Math.abs(gameState.puck.vx) * 0.8;
+                }
+                
+                if (gameState.puck.y - config.puckRadius < 0) {
+                    gameState.puck.y = config.puckRadius;
+                    gameState.puck.vy = Math.abs(gameState.puck.vy) * 0.8;
+                } else if (gameState.puck.y + config.puckRadius > canvas.height) {
+                    gameState.puck.y = canvas.height - config.puckRadius;
+                    gameState.puck.vy = -Math.abs(gameState.puck.vy) * 0.8;
+                }
+            }
+
+            // Проверка голов (исправленная логика - гол засчитывается, когда шайба полностью пересекает линию ворот)
+            function checkGoals() {
+                if (gameState.goalScored) return; // Если гол уже засчитан, пропускаем проверку
+                
+                // Гол в ворота игрока 1 (левые ворота) → очко получает игрок 2
+                if (gameState.puck.x - config.puckRadius < gameState.goalHeight) {
+                    const goalCenterY = canvas.height / 2;
+                    const goalTop = goalCenterY - gameState.goalWidth / 2;
+                    const goalBottom = goalCenterY + gameState.goalWidth / 2;
+                    
+                    if (gameState.puck.y > goalTop && gameState.puck.y < goalBottom) {
+                        gameState.goalScored = true; // Устанавливаем флаг, что гол засчитан
+                        gameState.scores.player2++; // Очко получает противник (игрок 2)
+                        updateScores();
+                        showGoalEffect();
+                        resetAfterGoal(1);
+                        return;
+                    }
+                }
+                
+                // Гол в ворота игрока 2 (правые ворота) → очко получает игрок 1
+                if (gameState.puck.x + config.puckRadius > canvas.width - gameState.goalHeight) {
+                    const goalCenterY = canvas.height / 2;
+                    const goalTop = goalCenterY - gameState.goalWidth / 2;
+                    const goalBottom = goalCenterY + gameState.goalWidth / 2;
+                    
+                    if (gameState.puck.y > goalTop && gameState.puck.y < goalBottom) {
+                        gameState.goalScored = true; // Устанавливаем флаг, что гол засчитан
+                        gameState.scores.player1++; // Очко получает противник (игрок 1)
+                        updateScores();
+                        showGoalEffect();
+                        resetAfterGoal(2);
+                        return;
+                    }
+                }
+            }
+
+            // Показать эффект гола
+            function showGoalEffect() {
+                goalEffect.style.display = 'block';
+                goalEffect.style.opacity = '1';
+                goalEffect.style.transform = 'translate(-50%, -50%) scale(0.5)';
+                
+                setTimeout(() => {
+                    goalEffect.style.display = 'none';
+                }, 1500);
+            }
+
+            // Сброс после гола
+            function resetAfterGoal(scoredPlayer) {
+                setTimeout(() => {
+                    if (scoredPlayer === 1) {
+                        gameState.puck.x = canvas.width * 0.25;
+                    } else {
+                        gameState.puck.x = canvas.width * 0.75;
+                    }
+                    
+                    gameState.puck.y = canvas.height / 2;
+                    gameState.puck.vx = 0;
+                    gameState.puck.vy = 0;
+                    
+                    gameState.goalScored = false; // Сброс флага гола
+                    checkWinCondition();
+                }, 500);
+            }
+
+            // Проверка условия победы
+            function checkWinCondition() {
+                if (gameState.scores.player1 >= config.maxScore) {
+                    showWinner(1);
+                } else if (gameState.scores.player2 >= config.maxScore) {
+                    showWinner(2);
+                }
+            }
+
+            // Показать сообщение о победе
+            function showWinner(player) {
+                gameState.gameActive = false;
+                winnerText.textContent = `Игрок ${player} побеждает со счетом ${gameState.scores.player1}:${gameState.scores.player2}!`;
+                winnerMessage.style.display = 'block';
+            }
+
+            // Обновление позиций
+            function update(deltaTime) {
+                if (!gameState.gameActive) return;
+                
+                updateMalletVelocity(gameState.mallet1, deltaTime);
+                updateMalletVelocity(gameState.mallet2, deltaTime);
+                
+                gameState.puck.vx *= config.friction;
+                gameState.puck.vy *= config.friction;
+                
+                gameState.puck.x += gameState.puck.vx;
+                gameState.puck.y += gameState.puck.vy;
+                
+                checkCollisions();
+                checkGoals();
+            }
+
+            // Отрисовка игры
+            function draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.fillStyle = config.colors.field;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.beginPath();
+                ctx.moveTo(canvas.width / 2, 0);
+                ctx.lineTo(canvas.width / 2, canvas.height);
+                ctx.strokeStyle = config.colors.centerLine;
+                ctx.lineWidth = 2;
+                ctx.setLineDash([10, 15]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                
+                ctx.strokeStyle = config.colors.walls;
+                ctx.lineWidth = 8;
+                ctx.strokeRect(4, 4, canvas.width - 8, canvas.height - 8);
+                
+                drawGoal(0, canvas.height / 2 - gameState.goalWidth / 2, gameState.goalHeight, gameState.goalWidth);
+                drawGoal(canvas.width - gameState.goalHeight, canvas.height / 2 - gameState.goalWidth / 2, gameState.goalHeight, gameState.goalWidth);
+                
+                ctx.beginPath();
+                ctx.arc(gameState.puck.x, gameState.puck.y, config.puckRadius, 0, Math.PI * 2);
+                
+                const puckGradient = ctx.createRadialGradient(
+                    gameState.puck.x - 3, gameState.puck.y - 3, 1,
+                    gameState.puck.x, gameState.puck.y, config.puckRadius
+                );
+                puckGradient.addColorStop(0, '#ffffff');
+                puckGradient.addColorStop(1, '#cccccc');
+                
+                ctx.fillStyle = puckGradient;
+                ctx.fill();
+                
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.arc(
+                    gameState.puck.x - config.puckRadius/3, 
+                    gameState.puck.y - config.puckRadius/3, 
+                    config.puckRadius/4, 
+                    0, 
+                    Math.PI * 2
+                );
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.fill();
+                
+                drawMallet(gameState.mallet1);
+                drawMallet(gameState.mallet2);
+            }
+
+            // Рисование ворот
+            function drawGoal(x, y, width, height) {
+                ctx.fillStyle = config.colors.goal;
+                ctx.fillRect(x, y, width, height);
+                
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+                ctx.fillRect(x + 2, y + 2, width - 4, height - 4);
+            }
+
+            // Рисование клюшки
+            function drawMallet(mallet) {
+                ctx.beginPath();
+                ctx.arc(mallet.x, mallet.y, mallet.radius, 0, Math.PI * 2);
+                
+                const gradient = ctx.createRadialGradient(
+                    mallet.x, mallet.y, mallet.radius * 0.4,
+                    mallet.x, mallet.y, mallet.radius
+                );
+                gradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+                gradient.addColorStop(1, mallet.color);
+                
+                ctx.fillStyle = gradient;
+                ctx.fill();
+                
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.arc(mallet.x, mallet.y, mallet.radius * 0.4, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(50, 50, 50, 0.7)';
+                ctx.fill();
+            }
+
+            // Игровой цикл
+            function gameLoop(timestamp) {
+                const deltaTime = timestamp - gameState.lastUpdate;
+                
+                if (deltaTime > 16) {
+                    update(deltaTime);
+                    draw();
+                    gameState.lastUpdate = timestamp;
+                }
+                
+                requestAnimationFrame(gameLoop);
+            }
+
+            initGame();
+        });
+    </script>
+</body>
+</html>
